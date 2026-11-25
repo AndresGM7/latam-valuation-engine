@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
 
       - name: Install dependencies
         run: |
@@ -49,6 +48,19 @@ jobs:
       - name: Smoke test
         run: |
           docker run -d -p 8000:8000 --name test-api latam-valuation-engine:test
-          sleep 5
-          curl -f http://localhost:8000/api/v1/health || exit 1
+          # Give uvicorn time to boot (slow on first start due to imports)
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            sleep 2
+            if curl -f http://localhost:8000/api/v1/health; then
+              echo "Health check passed on attempt $i"
+              break
+            fi
+            echo "Attempt $i failed, retrying..."
+          done
+          # Test endpoint actually works
+          curl -f http://localhost:8000/api/v1/valuation/wacc \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"country":"CO","beta_unlevered":1.2,"debt_to_total_capital_pct":30}' \
+            || (echo "DCF endpoint failed"; exit 1)
           docker stop test-api

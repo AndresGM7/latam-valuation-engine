@@ -49,8 +49,8 @@ class TriangularParams(BaseModel):
                 f"order violated: pessimistic({self.pessimistic}) <= "
                 f"probable({self.probable}) <= optimistic({self.optimistic})"
             )
-        if self.pessimistic == self.optimistic:
-            raise ValueError("pessimistic == optimistic collapses the distribution")
+        # Allow degenerate distribution (a==b==c) — caller signals "no uncertainty".
+        # Returning early in triangular_sample skips sqrt; tests cover both paths.
         return self
 
 
@@ -75,6 +75,11 @@ def triangular_sample(
     params = TriangularParams(pessimistic=pessimistic, probable=probable, optimistic=optimistic)
 
     a, b, c = params.pessimistic, params.probable, params.optimistic
+
+    # Degenerate distribution (a == b == c): every draw is the constant value.
+    if a == c:
+        return np.full(n, a, dtype=float)
+
     u = rng.random(n)
 
     # CDF threshold (probable quantile within the triangle)

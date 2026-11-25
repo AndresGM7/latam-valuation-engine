@@ -67,8 +67,13 @@ class TestTriangularBounds:
             TriangularParams(pessimistic=1.0, probable=0.9, optimistic=1.0)
 
     def test_rejects_equal_bounds(self):
-        with pytest.raises(ValueError, match="collapses"):
-            TriangularParams(pessimistic=1.0, probable=1.0, optimistic=1.0)
+        with pytest.raises(ValueError, match="order violated"):
+            TriangularParams(pessimistic=1.0, probable=0.5, optimistic=1.0)
+
+    def test_accepts_degenerate_distribution(self):
+        """All three bounds equal is a valid 'no uncertainty' case."""
+        params = TriangularParams(pessimistic=0.5, probable=0.5, optimistic=0.5)
+        assert params.pessimistic == 0.5
 
 
 class TestTriangularSummary:

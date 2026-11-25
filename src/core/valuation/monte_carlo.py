@@ -181,15 +181,28 @@ def run_monte_carlo(
         rng=rng,
     ).reshape(config.n_iterations, config.horizon_years)
 
-    # 2. Build per-iteration flujos de caja applying random growth
-    # First year uses base * (1 + growth), subsequent years compound
-    base_expanded = np.tile(flujos_base, (config.n_iterations, 1))
+    # 2. Build per-iteration flujos de caja applying random growth.
+    #
+    # INVARIANT (critical for auditability): when growth = 0 for all years,
+    # the resulting VPN must equal the textbook DCF:
+    #     VPN = sum(flujos_base[t] / (1+wacc)^(t+1)) - inversion_inicial
+    #
+    # cumulative_growth_* are np.cumprod(1+g_t), so when all g_t=0 they equal 1.0.
+    base_expanded = np.tile(flujos_base, (config.n_iterations, 1))  # shape (N, T)
+
+    # Cumulative growth factor (1.0 when growth is 0)
     cumulative_growth_rev = np.cumprod(1.0 + growth_rev, axis=1)
     cumulative_growth_cost = np.cumprod(1.0 + growth_cost, axis=1)
 
-    # Cash flows as revenue * (1 - cost_growth_factor) — simplification:
-    # higher cost growth erodes margen
-    flujos_sim = base_expanded * cumulative_growth_rev * (1.0 - cumulative_growth_cost * 0.1)
+    # Multiplicative growth on top of base (1.0 = no change)
+    growth_rev_factor = cumulative_growth_rev
+
+    # Cost growth acts as a drag on net flows, elasticity = 0.1 (1% cost growth
+    # → 0.1% net-flow reduction). When growth_cost_cum = 1.0 (no growth), drag = 0.
+    cost_elasticity = 0.1
+    growth_cost_factor = 1.0 - (cumulative_growth_cost - 1.0) * cost_elasticity
+
+    flujos_sim = base_expanded * growth_rev_factor * growth_cost_factor
 
     # 3. Discount each year's flujo to present value
     years = np.arange(1, config.horizon_years + 1)

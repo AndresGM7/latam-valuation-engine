@@ -87,3 +87,38 @@ class TestSummary:
         assert "tir_proyecto" in s
         assert "tir_inversionista" in s
         assert "prob_supera_wacc" in s["tir_proyecto"]
+
+
+class TestMonteCarloInvariant:
+    """REGRESSION: when growth = 0 for all years, the Monte Carlo VPN MUST
+    equal the deterministic DCF textbook formula. Caught a bug where the
+    cost-drag formula `(1 - cumulative_growth_cost * 0.1)` produced a 10%
+    systemic bias even when no uncertainty was specified."""
+
+    def test_zero_growth_matches_textbook(self):
+        flujos = np.array([50.0, 70.0, 95.0, 120.0, 150.0])
+        wacc = 0.15
+        years = np.arange(1, 6)
+        discount = 1.0 / (1.0 + wacc) ** years
+        vpn_manual = float(np.sum(flujos * discount) - 300.0)
+
+        cfg = MonteCarloConfig(
+            n_iterations=2000, horizon_years=5, wacc_pct=15.0, inversion_inicial=300.0, seed=42,
+            growth_revenue_pesimista=0.0, growth_revenue_probable=0.0, growth_revenue_optimista=0.0,
+            growth_costs_pesimista=0.0, growth_costs_probable=0.0, growth_costs_optimista=0.0,
+        )
+        result = run_monte_carlo(flujos, cfg)
+        np.testing.assert_allclose(result.vpn_mean, vpn_manual, atol=0.01)
+        np.testing.assert_allclose(result.vpn_std, 0.0, atol=0.01)
+
+    def test_annuity_zero_growth(self):
+        flujos = np.array([100.0] * 5)
+        vpn_manual = sum(100 / (1.1**y) for y in range(1, 6))
+
+        cfg = MonteCarloConfig(
+            n_iterations=2000, horizon_years=5, wacc_pct=10.0, inversion_inicial=0.0, seed=42,
+            growth_revenue_pesimista=0.0, growth_revenue_probable=0.0, growth_revenue_optimista=0.0,
+            growth_costs_pesimista=0.0, growth_costs_probable=0.0, growth_costs_optimista=0.0,
+        )
+        result = run_monte_carlo(flujos, cfg)
+        np.testing.assert_allclose(result.vpn_mean, vpn_manual, atol=0.01)
