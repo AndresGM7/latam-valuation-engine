@@ -1,0 +1,10 @@
+[build]
+  command = "echo 'Static landing — no build needed'"
+  publish = "landing"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
