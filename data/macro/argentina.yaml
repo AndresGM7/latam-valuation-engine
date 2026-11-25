@@ -1,0 +1,13 @@
+country: AR
+as_of: 2026-10-15
+inflation_yoy_pct: 38.50
+inflation_expectations_1y_pct: 28.00
+inflation_expectations_2y_pct: 18.00
+reference_rate_pct: 32.00
+embi_spread_bps: 850
+fx_rate_to_usd: 1180.00
+fx_volatility_30d_pct: 8.50
+unemployment_pct: 7.10
+gdp_growth_yoy_pct: -1.20
+min_wage_local: 320000
+source: BCRA + INDEC, datos octubre 2026 (verificado manualmente)

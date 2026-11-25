@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+env/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.production
+.env.production.local
+.env.development.local
+.env.test.local
+
+# Logs
+logs/
+*.log
+
+# Fly.io secrets (NEVER commit)
+.fly/
+fly.keys
+
+# Runtime data
+data/runtime/
+data/cache/
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Frontend
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Local user notes
+.hermes/

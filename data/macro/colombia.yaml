@@ -1,0 +1,13 @@
+country: CO
+as_of: 2026-10-15
+inflation_yoy_pct: 5.30
+inflation_expectations_1y_pct: 4.50
+inflation_expectations_2y_pct: 3.80
+reference_rate_pct: 9.25
+embi_spread_bps: 280
+fx_rate_to_usd: 4100.00
+fx_volatility_30d_pct: 3.20
+unemployment_pct: 9.80
+gdp_growth_yoy_pct: 2.40
+min_wage_local: 1600000
+source: Banrep + DANE + SFC, datos octubre 2026 (verificado manualmente)
