@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Multi-stage Dockerfile for latam-valuation-engine
-# Pattern: builder -> runtime (lean image, no dev deps)
+# Pattern: builder (compile deps) -> runtime (lean image, install deps fresh)
 # Reference: pre-deploy-audit skill, Oct 2026 pension-calc pitfalls
 
 ARG PYTHON_VERSION=3.11
@@ -11,20 +11,19 @@ FROM python:${PYTHON_VERSION}-slim-bookworm AS builder
 
 WORKDIR /build
 
-# System deps needed to build some wheels (kept minimal)
+# System deps needed to build some wheels
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy ONLY what's needed for dependency resolution first (cache layer)
+# Copy source for the package install
 COPY pyproject.toml README.md ./
 COPY src ./src
 
-# Install deps. We DON'T install dev extras in the production image.
-# Devs run `pip install -e .[dev,data]` locally.
+# Build a wheel in the builder stage
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir .
+    && pip wheel --no-cache-dir --wheel-dir=/wheels .
 
 # ---- Runtime stage ----
 FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
@@ -35,35 +34,39 @@ RUN groupadd --system --gid 1001 app \
 
 WORKDIR /app
 
-# Runtime system deps (just libpq for asyncpg, curl for healthcheck)
+# Runtime system deps (libpq for asyncpg, curl for healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Discover the actual Python version directory at build time.
-# PYTHON_VERSION may be "3.11" while the actual dir is "python3.11" or "python3.11.18".
-# We use a wildcard to match either form, which is portable across python:3.11 images.
-COPY --from=builder /usr/local/lib/python3*/site-packages /usr/local/lib/python3*/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /build/src ./src
+# Install the wheel and ALL its dependencies from scratch. This avoids the
+# brittle "copy site-packages from builder" pattern that fails when the
+# builder Python minor version differs from the runtime Python minor version.
+COPY --from=builder /wheels /wheels
+COPY pyproject.toml /app/pyproject.toml
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --find-links=/wheels "latam-valuation-engine" \
+    && rm -rf /wheels
 
-# Static assets (landing, docs) — these are public, OK to copy
+# Copy source (not strictly needed if installed as package, but useful for `python -m`)
+COPY src ./src
+
+# Static assets (public, OK to copy)
 COPY landing ./landing
 COPY data ./data
 
 # Healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:${PORT}/api/v1/health || exit 1
 
 USER app
 
 EXPOSE ${PORT}
 
-# Make src/ importable; uvicorn runs as a module so PYTHONPATH is set.
+# Ensure uvicorn is importable; run as a module so src/ is on PYTHONPATH.
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Uvicorn with workers=1 for memory-constrained free tier.
-# Scale with `fly scale count` for more concurrency.
 CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers"]
