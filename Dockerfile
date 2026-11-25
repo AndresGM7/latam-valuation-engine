@@ -60,6 +60,10 @@ USER app
 
 EXPOSE ${PORT}
 
+# Make src/ importable; uvicorn runs as a module so PYTHONPATH is set.
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
 # Uvicorn with workers=1 for memory-constrained free tier.
 # Scale with `fly scale count` for more concurrency.
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers"]
+CMD ["python", "-m", "uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--proxy-headers"]
