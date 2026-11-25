@@ -1,13 +1,21 @@
 country: CO
-as_of: 2026-10-15
-inflation_yoy_pct: 5.30
-inflation_expectations_1y_pct: 4.50
+as_of: 2026-01-15
+sources:
+  world_bank_api: "https://api.worldbank.org/v2/country/COL/indicator/"
+  damodaran_erp: "https://pages.stern.nyu.edu/~adamodar/pc/datasets/ctryprem.xls (updated 2026-01-01)"
+  damodaran_betas: "https://pages.stern.nyu.edu/~adamodar/pc/datasets/betaGlobal.xls"
+inflation_yoy_pct: 5.14        # World Bank 2025 (proxy oficial para Colombia)
+inflation_expectations_1y_pct: 4.50  # Banrep survey (placeholder, verify quarterly)
 inflation_expectations_2y_pct: 3.80
-reference_rate_pct: 9.25
-embi_spread_bps: 280
-fx_rate_to_usd: 4100.00
-fx_volatility_30d_pct: 3.20
-unemployment_pct: 9.80
-gdp_growth_yoy_pct: 2.40
-min_wage_local: 1600000
-source: Banrep + DANE + SFC, datos octubre 2026 (verificado manualmente)
+reference_rate_pct: 9.25        # Banrep (verificar en sitio oficial, posible cambio 2026)
+embi_spread_bps: 320           # Damodaran 2026-Q1 default spread * 100 (verificar vs J.P. Morgan EMBI live)
+country_risk_premium_pct: 2.85 # Damodaran Jan 2026 (Baa3 rated)
+equity_risk_premium_pct: 7.08  # Damodaran Jan 2026 (total ERP for Colombia)
+fx_rate_to_usd: 4053.14        # World Bank 2025 average
+fx_volatility_30d_pct: 3.50    # estimado (verificar)
+unemployment_pct: 8.29         # World Bank 2025
+gdp_growth_yoy_pct: 2.64       # World Bank 2025
+min_wage_local: 1750000        # SMLMV Colombia 2026 (verificar - estimado)
+tax_rate_corp_pct: 35.0        # Tarifa nominal impuesto renta Colombia 2026
+debt_to_gdp_pct: 56.0          # Ministerio de Hacienda (placeholder - verificar)
+source: "World Bank API + Damodaran Jan 2026 (ctryprem.xls, betaGlobal.xls) + Banrep/DANE references"

@@ -45,11 +45,15 @@ class MacroSnapshot(BaseModel):
     inflation_expectations_2y_pct: float = Field(..., description="Market expectations, 2Y")
     reference_rate_pct: float = Field(..., description="Central bank policy rate")
     embi_spread_bps: float = Field(..., description="EMBI spread over US Treasury, basis points")
+    country_risk_premium_pct: float = Field(0.0, description="Damodaran-style country risk premium")
+    equity_risk_premium_pct: float = Field(0.0, description="Damodaran total ERP (mature + CRP)")
     fx_rate_to_usd: float = Field(..., description="Local currency per USD")
     fx_volatility_30d_pct: float = Field(..., description="30-day realized FX volatility")
     unemployment_pct: float = Field(..., description="National unemployment rate")
     gdp_growth_yoy_pct: float = Field(..., description="Real GDP growth, YoY")
     min_wage_local: float = Field(..., description="Monthly minimum wage in local currency")
+    tax_rate_corp_pct: float = Field(0.0, description="Effective corporate tax rate")
+    debt_to_gdp_pct: float = Field(0.0, description="Public debt to GDP")
     source: str = Field(..., description="Provenance string")
 
 

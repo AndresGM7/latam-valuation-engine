@@ -108,11 +108,15 @@ class MacroResponse(BaseModel):
     inflation_expectations_2y_pct: float
     reference_rate_pct: float
     embi_spread_bps: float
+    country_risk_premium_pct: float
+    equity_risk_premium_pct: float
     fx_rate_to_usd: float
     fx_volatility_30d_pct: float
     unemployment_pct: float
     gdp_growth_yoy_pct: float
     min_wage_local: float
+    tax_rate_corp_pct: float
+    debt_to_gdp_pct: float
     source: str
 
 

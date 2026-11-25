@@ -1,13 +1,21 @@
 country: AR
-as_of: 2026-10-15
-inflation_yoy_pct: 38.50
-inflation_expectations_1y_pct: 28.00
+as_of: 2026-01-15
+sources:
+  world_bank_api: "https://api.worldbank.org/v2/country/ARG/indicator/"
+  damodaran_erp: "https://pages.stern.nyu.edu/~adamodar/pc/datasets/ctryprem.xls (updated 2026-01-01)"
+  damodaran_betas: "https://pages.stern.nyu.edu/~adamodar/pc/datasets/betaGlobal.xls"
+inflation_yoy_pct: 219.88      # World Bank 2024 (último oficial publicado; 2025-2026 sin confirmar)
+inflation_expectations_1y_pct: 28.00  # REM BCRA (placeholder)
 inflation_expectations_2y_pct: 18.00
-reference_rate_pct: 32.00
-embi_spread_bps: 850
-fx_rate_to_usd: 1180.00
+reference_rate_pct: 32.00      # BCRA (estimado - verificar TNA actual)
+embi_spread_bps: 637           # Damodaran 2026-Q1 default spread * 100
+country_risk_premium_pct: 9.71 # Damodaran Jan 2026 (Caa1 rated)
+equity_risk_premium_pct: 13.94 # Damodaran Jan 2026 (total ERP for Argentina)
+fx_rate_to_usd: 1240.85        # World Bank 2025 average
 fx_volatility_30d_pct: 8.50
-unemployment_pct: 7.10
-gdp_growth_yoy_pct: -1.20
-min_wage_local: 320000
-source: BCRA + INDEC, datos octubre 2026 (verificado manualmente)
+unemployment_pct: 7.14         # World Bank 2025
+gdp_growth_yoy_pct: 4.37       # World Bank 2025
+min_wage_local: 320000         # SMVM Argentina 2026 (verificar - estimado)
+tax_rate_corp_pct: 35.0        # Impuesto a las ganancias empresas
+debt_to_gdp_pct: 88.0          # Estimado (verificar con INDEC/MECON)
+source: "World Bank API + Damodaran Jan 2026 (ctryprem.xls, betaGlobal.xls) + BCRA/INDEC references"

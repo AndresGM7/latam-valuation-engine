@@ -134,8 +134,11 @@ def compute_wacc(inputs: WACCInputs) -> WACCResult:
 
 
 # ------------------------------------------------------------
-# Convenience presets calibrated to public data (2024-2026).
-# Numbers are intentionally conservative; users can override.
+# Convenience presets calibrated to Damodaran Jan 2026 + World Bank 2025.
+# Source: https://pages.stern.nyu.edu/~adamodar/pc/datasets/ctryprem.xls
+#         https://pages.stern.nyu.edu/~adamodar/pc/datasets/betaGlobal.xls
+#         https://api.worldbank.org/v2/country/{CO,AR}/indicator/
+# Updated: 2026-01-15 by Hermes Agent
 # ------------------------------------------------------------
 
 
@@ -144,29 +147,29 @@ class CountryDefaults:
     """Default country-level inputs for WACC. Update these as Banrep/SFC publish new data."""
 
     country: Country
-    risk_free_rate_pct: float  # Local 10Y sovereign bond yield (USD-denominated for AR)
-    equity_risk_premium_pct: float  # Damodaran-style mature-market premium
-    country_risk_premium_pct: float  # Current EMBI / CDS spread
+    risk_free_rate_pct: float  # US 10Y sovereign bond yield (USD-denominated for AR)
+    equity_risk_premium_pct: float  # Damodaran total ERP for the country (mature + CRP)
+    country_risk_premium_pct: float  # Damodaran CRP
     cost_of_debt_pretax_pct: float  # Avg commercial bank lending rate
     tax_rate_pct: float
 
 
-# 2026-Q4 calibration. Update from data/macro/ quarterly.
+# 2026-Q1 calibration from Damodaran + World Bank.
 DEFAULTS_2026 = {
     Country.COLOMBIA: CountryDefaults(
         country=Country.COLOMBIA,
-        risk_free_rate_pct=4.30,        # US 10Y (Col local bond yield would be higher but US proxy is convention)
-        equity_risk_premium_pct=5.50,   # Damodaran Colombia 2024
-        country_risk_premium_pct=2.80,  # EMBI Colombia spread over US Treasury
-        cost_of_debt_pretax_pct=17.40,  # Tasa Bancos promedio (SFC)
-        tax_rate_pct=35.0,              # Tarica nominal Colombia 2024+
+        risk_free_rate_pct=4.30,        # US 10Y Treasury proxy
+        equity_risk_premium_pct=7.08,   # Damodaran Jan 2026 (Baa3 rated, total ERP)
+        country_risk_premium_pct=2.85,  # Damodaran Jan 2026 (Colombia CRP)
+        cost_of_debt_pretax_pct=17.40,  # Tasa Bancos promedio SFC (placeholder - verify)
+        tax_rate_pct=35.0,              # Tarifa nominal Colombia 2024+
     ),
     Country.ARGENTINA: CountryDefaults(
         country=Country.ARGENTINA,
-        risk_free_rate_pct=4.30,        # US 10Y proxy
-        equity_risk_premium_pct=8.00,   # Damodaran Argentina ERP
-        country_risk_premium_pct=8.50,  # Riesgo soberano ARG post-2024 (alto)
-        cost_of_debt_pretax_pct=45.00,  # BADLAR + spread, post-devaluacion
+        risk_free_rate_pct=4.30,        # US 10Y proxy (Argentina no tiene 10Y USD líquido)
+        equity_risk_premium_pct=13.94,  # Damodaran Jan 2026 (Caa1 rated, total ERP)
+        country_risk_premium_pct=9.71,  # Damodaran Jan 2026 (Argentina CRP)
+        cost_of_debt_pretax_pct=45.00,  # BADLAR + spread (placeholder - verify post-devaluación)
         tax_rate_pct=35.0,              # Impuesto a las ganancias
     ),
     Country.UNITED_STATES: CountryDefaults(
