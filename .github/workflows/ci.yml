@@ -47,7 +47,9 @@ jobs:
 
       - name: Smoke test
         run: |
-          docker run -d -p 8000:8000 --name test-api latam-valuation-engine:test
+          # Run container in background and capture its ID
+          CID=$(docker run -d -p 8000:8000 --name test-api latam-valuation-engine:test)
+          echo "Container ID: $CID"
           # Give uvicorn time to boot (slow on first start due to imports)
           for i in 1 2 3 4 5 6 7 8 9 10; do
             sleep 2
@@ -57,10 +59,14 @@ jobs:
             fi
             echo "Attempt $i failed, retrying..."
           done
-          # Test endpoint actually works
+          # Show container logs if still failing
+          echo "--- container logs ---"
+          docker logs $CID 2>&1 | tail -40 || true
+          # Test DCF endpoint
+          echo "--- DCF endpoint test ---"
           curl -f http://localhost:8000/api/v1/valuation/wacc \
             -X POST \
             -H "Content-Type: application/json" \
             -d '{"country":"CO","beta_unlevered":1.2,"debt_to_total_capital_pct":30}' \
-            || (echo "DCF endpoint failed"; exit 1)
+            || (echo "DCF endpoint failed"; docker stop test-api; exit 1)
           docker stop test-api
