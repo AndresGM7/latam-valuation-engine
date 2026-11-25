@@ -41,8 +41,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed packages and source from builder
-COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages /usr/local/lib/python${PYTHON_VERSION}/site-packages
+# Discover the actual Python version directory at build time.
+# PYTHON_VERSION may be "3.11" while the actual dir is "python3.11" or "python3.11.18".
+# We use a wildcard to match either form, which is portable across python:3.11 images.
+COPY --from=builder /usr/local/lib/python3*/site-packages /usr/local/lib/python3*/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /build/src ./src
 
