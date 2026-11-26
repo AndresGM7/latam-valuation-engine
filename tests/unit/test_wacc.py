@@ -8,6 +8,7 @@ from src.core.valuation.wacc import (
     Country,
     relever_beta,
     wacc_from_defaults,
+    wacc_decomposable,
 )
 
 
@@ -30,10 +31,29 @@ class TestWACCRelativity:
         assert co.wacc_pct > us.wacc_pct
 
     def test_country_risk_premium_applied_only_for_latam(self):
+        # Path A (Damodaran total ERP): CRP_applied=0 by definition, but WACC > US proves it
         ar = wacc_from_defaults(Country.ARGENTINA)
         us = wacc_from_defaults(Country.UNITED_STATES)
-        assert ar.country_risk_premium_applied_pct > 0
-        assert us.country_risk_premium_applied_pct == 0
+        # In Path A, crp_applied=0, but the total ERP carries the risk
+        assert ar.wacc_pct > us.wacc_pct
+        # Path B makes the decomposition explicit
+        ar_b = wacc_decomposable(
+            country=Country.ARGENTINA,
+            mature_erp_pct=5.5,
+            country_risk_premium_pct=9.71,
+            fx_risk_premium_pct=0.0,
+            beta_unlevered=1.0,
+            debt_to_total_capital_pct=30.0,
+        )
+        assert ar_b.country_risk_premium_applied_pct > 0
+        us_b = wacc_decomposable(
+            country=Country.UNITED_STATES,
+            mature_erp_pct=5.5,
+            country_risk_premium_pct=0.0,
+            beta_unlevered=1.0,
+            debt_to_total_capital_pct=30.0,
+        )
+        assert us_b.country_risk_premium_applied_pct == 0
 
 
 class TestReleverBeta:
@@ -60,5 +80,6 @@ class TestWACCComponents:
 
     def test_components_dict_has_required_keys(self):
         r = wacc_from_defaults(Country.COLOMBIA)
-        for key in ["rf", "beta_levered", "erp", "crp", "kd_pretax", "kd_after_tax", "D_over_V", "E_over_V"]:
+        for key in ["rf", "beta_levered", "erp_effective", "crp", "fx_risk",
+                    "kd_pretax", "kd_after_tax", "D_over_V", "E_over_V", "erp_path"]:
             assert key in r.components

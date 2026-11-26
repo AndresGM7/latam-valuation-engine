@@ -29,7 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Country(str, Enum):
@@ -39,18 +39,61 @@ class Country(str, Enum):
 
 
 class WACCInputs(BaseModel):
-    """Inputs to compute WACC."""
+    """Inputs to compute WACC.
+
+    Two ways to specify country risk:
+
+    Mode 1 (recommended for non-AR, non-Venezuela Latam):
+        Set `equity_risk_premium_pct` to Damodaran TOTAL ERP (already includes CRP).
+        Set `country_risk_premium_pct = 0`.
+
+    Mode 2 (for Argentina, Venezuela, or hyperinflationary economies):
+        Set `mature_erp_pct = 5.5` (Damodaran mature market premium).
+        Set `country_risk_premium_pct = EMBI/BCRD sovereign spread`.
+        Set `fx_risk_premium_pct = expected depreciation vs inflation differential`.
+        Leave `equity_risk_premium_pct = None` to use the decomposable components.
+
+    Damodaran's "total ERP" already includes CRP for the country.
+    Adding CRP again would double-count. This model lets you choose either path.
+    """
 
     country: Country
     risk_free_rate_pct: float = Field(..., ge=0, le=30, description="US 10Y Treasury or local risk-free proxy")
-    equity_risk_premium_pct: float = Field(..., ge=0, le=20, description="Damodaran ERP for the country")
+
+    # Path A: Damodaran total ERP (mature + CRP combined). Use this OR the decomposable components below.
+    equity_risk_premium_pct: float | None = Field(
+        None, ge=0, le=30,
+        description="Damodaran TOTAL ERP for the country (mature + CRP). Use ONLY this if you don't decompose."
+    )
+
+    # Path B: Decomposable components (for AR, VE, or any country with FX risk)
+    mature_erp_pct: float | None = Field(None, ge=0, le=20, description="Mature market ERP (Damodaran: 5.5% for US)")
     country_risk_premium_pct: float = Field(0.0, ge=0, le=30, description="EMBI spread or sovereign CDS")
+    fx_risk_premium_pct: float = Field(0.0, ge=0, le=30, description="Expected depreciation vs inflation differential (AR only)")
+
     beta_unlevered: float = Field(..., ge=0.1, le=3.0, description="Industry beta from Damodaran")
     debt_to_total_capital_pct: float = Field(..., ge=0, le=100, description="Target D/(D+E)")
     cost_of_debt_pretax_pct: float = Field(..., ge=0, le=50, description="Local currency borrowing rate")
     tax_rate_pct: float = Field(..., ge=0, le=50, description="Effective corporate tax rate")
 
-    @field_validator("risk_free_rate_pct", "equity_risk_premium_pct", "country_risk_premium_pct",
+    size_premium_pct: float = Field(0.0, ge=0, le=10, description="Size premium for small caps (Duff & Phelps)")
+
+    @model_validator(mode="after")
+    def _validate_erp_path(self) -> "WACCInputs":
+        """Either equity_risk_premium_pct OR mature_erp_pct must be set, not both."""
+        if self.equity_risk_premium_pct is None and self.mature_erp_pct is None:
+            raise ValueError(
+                "Must provide either `equity_risk_premium_pct` (Damodaran total ERP) "
+                "OR `mature_erp_pct` (decomposable). See docstring."
+            )
+        if self.equity_risk_premium_pct is not None and self.mature_erp_pct is not None:
+            raise ValueError(
+                "Provide either `equity_risk_premium_pct` OR `mature_erp_pct`, not both. "
+                "Using both double-counts CRP."
+            )
+        return self
+
+    @field_validator("risk_free_rate_pct", "country_risk_premium_pct", "fx_risk_premium_pct",
                      "beta_unlevered", "debt_to_total_capital_pct", "cost_of_debt_pretax_pct", "tax_rate_pct")
     @classmethod
     def _finite(cls, v: float) -> float:
@@ -84,12 +127,14 @@ def relever_beta(
 def compute_wacc(inputs: WACCInputs) -> WACCResult:
     """Compute WACC with country risk premium adjustment.
 
-    Formula:
-        ke = rf + beta_levered * ERP + country_risk_premium
-        kd_after_tax = kd * (1 - t)
-        WACC = ke * (E/V) + kd_after_tax * (D/V)
+    Cost of equity formula (CAPM with country + FX risk):
+        Ke = Rf + β_levered × ERP_effective + CRP + FX_risk + size_premium
 
-    Where V = D + E.
+    Where ERP_effective is one of:
+        Path A: `equity_risk_premium_pct` (Damodaran total, includes CRP)
+        Path B: `mature_erp_pct` (just the mature market portion; CRP added separately)
+
+    Cost of debt and WACC follow the standard formula.
     """
     d_over_v = inputs.debt_to_total_capital_pct / 100.0
     e_over_v = 1.0 - d_over_v
@@ -105,10 +150,22 @@ def compute_wacc(inputs: WACCInputs) -> WACCResult:
         tax_rate_pct=inputs.tax_rate_pct,
     )
 
+    # Decide which ERP path to use
+    if inputs.equity_risk_premium_pct is not None:
+        # Path A: Damodaran total ERP (already includes CRP). Do NOT add CRP again.
+        erp_effective = inputs.equity_risk_premium_pct
+        crp_applied = 0.0  # already inside ERP
+    else:
+        # Path B: mature ERP + CRP + FX risk (decomposable for AR, VE)
+        erp_effective = inputs.mature_erp_pct or 0.0
+        crp_applied = inputs.country_risk_premium_pct
+
     cost_of_equity = (
         inputs.risk_free_rate_pct
-        + beta_levered * inputs.equity_risk_premium_pct
-        + inputs.country_risk_premium_pct
+        + beta_levered * erp_effective
+        + crp_applied
+        + inputs.fx_risk_premium_pct
+        + inputs.size_premium_pct
     )
 
     cost_of_debt_after_tax = inputs.cost_of_debt_pretax_pct * (1.0 - inputs.tax_rate_pct / 100.0)
@@ -119,16 +176,19 @@ def compute_wacc(inputs: WACCInputs) -> WACCResult:
         cost_of_equity_pct=cost_of_equity,
         cost_of_debt_after_tax_pct=cost_of_debt_after_tax,
         wacc_pct=wacc,
-        country_risk_premium_applied_pct=inputs.country_risk_premium_pct,
+        country_risk_premium_applied_pct=crp_applied + inputs.fx_risk_premium_pct,
         components={
             "rf": inputs.risk_free_rate_pct,
             "beta_levered": beta_levered,
-            "erp": inputs.equity_risk_premium_pct,
-            "crp": inputs.country_risk_premium_pct,
+            "erp_effective": erp_effective,
+            "crp": crp_applied,
+            "fx_risk": inputs.fx_risk_premium_pct,
+            "size_premium": inputs.size_premium_pct,
             "kd_pretax": inputs.cost_of_debt_pretax_pct,
             "kd_after_tax": cost_of_debt_after_tax,
             "D_over_V": d_over_v,
             "E_over_V": e_over_v,
+            "erp_path": "A_total_Damodaran" if inputs.equity_risk_premium_pct is not None else "B_decomposable",
         },
     )
 
@@ -191,17 +251,50 @@ def wacc_from_defaults(
     """Compute WACC using calibrated defaults + user-provided beta and capital structure.
 
     This is the convenience function most API calls will use.
+    Uses Path A: Damodaran total ERP (which already includes CRP).
     """
     defaults = DEFAULTS_2026[country]
     inputs = WACCInputs(
         country=country,
         risk_free_rate_pct=defaults.risk_free_rate_pct,
         equity_risk_premium_pct=defaults.equity_risk_premium_pct,
-        country_risk_premium_pct=defaults.country_risk_premium_pct,
+        country_risk_premium_pct=0.0,  # Path A: CRP already inside equity_risk_premium_pct
         beta_unlevered=beta_unlevered,
         debt_to_total_capital_pct=debt_to_total_capital_pct,
         cost_of_debt_pretax_pct=defaults.cost_of_debt_pretax_pct,
         tax_rate_pct=defaults.tax_rate_pct,
+    )
+    return compute_wacc(inputs)
+
+
+def wacc_decomposable(
+    country: Country,
+    mature_erp_pct: float,
+    country_risk_premium_pct: float,
+    fx_risk_premium_pct: float = 0.0,
+    beta_unlevered: float = 1.0,
+    debt_to_total_capital_pct: float = 30.0,
+    risk_free_rate_pct: float | None = None,
+    cost_of_debt_pretax_pct: float | None = None,
+    tax_rate_pct: float | None = None,
+) -> WACCResult:
+    """Compute WACC using decomposable components (Path B).
+
+    Use this for hyperinflationary economies (Argentina, Venezuela, Turkey, Nigeria)
+    where the cost of equity must be decomposed into mature-market ERP + sovereign CRP
+    + FX risk premium. The defaults are used for any unspecified parameter.
+    """
+    defaults = DEFAULTS_2026[country]
+    inputs = WACCInputs(
+        country=country,
+        risk_free_rate_pct=risk_free_rate_pct if risk_free_rate_pct is not None else defaults.risk_free_rate_pct,
+        mature_erp_pct=mature_erp_pct,
+        country_risk_premium_pct=country_risk_premium_pct,
+        fx_risk_premium_pct=fx_risk_premium_pct,
+        beta_unlevered=beta_unlevered,
+        debt_to_total_capital_pct=debt_to_total_capital_pct,
+        cost_of_debt_pretax_pct=cost_of_debt_pretax_pct if cost_of_debt_pretax_pct is not None else defaults.cost_of_debt_pretax_pct,
+        tax_rate_pct=tax_rate_pct if tax_rate_pct is not None else defaults.tax_rate_pct,
     )
     return compute_wacc(inputs)
 
@@ -215,4 +308,5 @@ __all__ = [
     "relever_beta",
     "compute_wacc",
     "wacc_from_defaults",
+    "wacc_decomposable",
 ]
