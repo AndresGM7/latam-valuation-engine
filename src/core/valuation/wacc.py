@@ -35,6 +35,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 class Country(str, Enum):
     COLOMBIA = "CO"
     ARGENTINA = "AR"
+    MEXICO = "MX"
+    CHILE = "CL"
+    BRAZIL = "BR"
+    PERU = "PE"
     UNITED_STATES = "US"  # baseline; no country risk premium
 
 
@@ -239,6 +243,38 @@ DEFAULTS_2026 = {
         country_risk_premium_pct=0.0,
         cost_of_debt_pretax_pct=6.50,
         tax_rate_pct=21.0,
+    ),
+    Country.MEXICO: CountryDefaults(
+        country=Country.MEXICO,
+        risk_free_rate_pct=4.30,        # US 10Y proxy (MX sovereign curve is USD-denominated)
+        equity_risk_premium_pct=6.10,   # Damodaran Jan 2026 (Baa2 rated, total ERP)
+        country_risk_premium_pct=1.84,  # Damodaran Jan 2026 (Mexico CRP)
+        cost_of_debt_pretax_pct=12.50,  # TIIE + spread (placeholder - verify with Banxico)
+        tax_rate_pct=30.0,              # ISR nominal Mexico
+    ),
+    Country.CHILE: CountryDefaults(
+        country=Country.CHILE,
+        risk_free_rate_pct=4.30,
+        equity_risk_premium_pct=6.06,   # Damodaran Jan 2026 (A rated, total ERP)
+        country_risk_premium_pct=1.10,  # Damodaran Jan 2026 (Chile CRP)
+        cost_of_debt_pretax_pct=10.50,  # BCCh reference rate
+        tax_rate_pct=27.0,              # Impuesto a la renta Chile
+    ),
+    Country.BRAZIL: CountryDefaults(
+        country=Country.BRAZIL,
+        risk_free_rate_pct=4.30,
+        equity_risk_premium_pct=8.85,   # Damodaran Jan 2026 (Ba2 rated, total ERP)
+        country_risk_premium_pct=3.10,  # Damodaran Jan 2026 (Brazil CRP)
+        cost_of_debt_pretax_pct=15.50,  # CDI + spread
+        tax_rate_pct=34.0,              # IRPJ + CSLL
+    ),
+    Country.PERU: CountryDefaults(
+        country=Country.PERU,
+        risk_free_rate_pct=4.30,
+        equity_risk_premium_pct=6.85,   # Damodaran Jan 2026 (A3 rated, total ERP)
+        country_risk_premium_pct=1.74,  # Damodaran Jan 2026 (Peru CRP)
+        cost_of_debt_pretax_pct=10.80,
+        tax_rate_pct=29.5,
     ),
 }
 
