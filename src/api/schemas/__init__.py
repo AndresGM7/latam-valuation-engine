@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -126,6 +127,19 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     version: str
     service: str
+
+
+class EMBIResponse(BaseModel):
+    """Response body for GET /api/v1/valuation/embi/{country}."""
+
+    country: str
+    as_of: date
+    latest_spread_pct: float
+    window_days: int
+    moving_average_spread_pct: Optional[float]
+    std_window_pct: Optional[float]
+    dataset_latest_date: date
+    source: str
 
 
 __all__ = [

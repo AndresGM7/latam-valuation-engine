@@ -15,7 +15,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routes import health_router, valuation_router
+from src.api.routes import embi_router, health_router, valuation_router
 from src.core.settings import get_settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -52,3 +52,4 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(valuation_router)
+app.include_router(embi_router)
