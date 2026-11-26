@@ -131,7 +131,13 @@ def beta_for_index_country(country_code: str) -> float:
 
     Reads from `data/index_composition.json`. If the country isn't there,
     raises FileNotFoundError with a helpful message.
+
+    Sectors present in the composition file but missing from Damodaran's
+    INDUSTRY_BETAS dict are reported via stderr (so users know they need
+    to map them) and skipped from the weighted average. The returned beta
+    is therefore the best estimate given available data, not a fixed answer.
     """
+    import sys
     path = Path(__file__).resolve().parents[3] / "data" / "index_composition.json"
     if not path.exists():
         raise FileNotFoundError(
@@ -147,11 +153,31 @@ def beta_for_index_country(country_code: str) -> float:
     comp = payload[country_code]
     sectors: dict[str, float] = comp["sectors"]
     beta_weighted = 0.0
+    total_weight = 0.0
+    missing_sectors = []
     for industry, weight in sectors.items():
         if industry not in INDUSTRY_BETAS:
-            # Skip unknown, log warning
+            missing_sectors.append((industry, weight))
             continue
         beta_weighted += weight * INDUSTRY_BETAS[industry].unlevered_beta
+        total_weight += weight
+
+    if missing_sectors:
+        print(
+            f"[WARN] {country_code}: {len(missing_sectors)} sector(s) not in INDUSTRY_BETAS — "
+            f"weighted beta uses {total_weight*100:.1f}% of total weight:",
+            file=sys.stderr,
+        )
+        for s, w in missing_sectors:
+            print(f"  - {s} ({w*100:.1f}%)", file=sys.stderr)
+
+    if total_weight < 0.99:
+        print(
+            f"[WARN] {country_code}: only {total_weight*100:.1f}% of index weight mapped to "
+            f"known Damodaran industries. Beta is incomplete.",
+            file=sys.stderr,
+        )
+
     return beta_weighted
 
 

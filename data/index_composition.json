@@ -1,0 +1,49 @@
+{
+  "_meta": {
+    "description": "Sector-weighted composition of Latam equity indices (COLCAP, Merval) for use as the country-specific equity beta in our WACC model.",
+    "data_status": "ESTIMATED_FROM_PUBLIC_SOURCES — see notes per index. Not live market data. To refresh, run scripts/refresh_index_composition.py locally with browser access.",
+    "damodaran_reference": "https://pages.stern.nyu.edu/~adamodar/pc/datasets/betaGlobal.xls (Jan 2026)",
+    "last_manual_review": "2026-01-15"
+  },
+  "CO": {
+    "index_name": "COLCAP",
+    "country": "Colombia",
+    "as_of": "2024-Q4 (estimated from public BVC communications and analyst notes)",
+    "source_note": "BVC publishes the official canasta after each cuatrimestral recomposition (Mar/Jun/Sep/Dec). The weights below are reasonable estimates from publicly disclosed methodology and analyst commentary. To get the live official weights, see scripts/refresh_index_composition.py.",
+    "sectors": {
+      "Oil/Gas (Integrated)": 0.165,
+      "Banks (Regional)": 0.265,
+      "Investments & Asset Mgmt": 0.225,
+      "Utility (General)": 0.115,
+      "Building Materials": 0.045,
+      "Food Processing": 0.035,
+      "Oil/Gas (Distribution)": 0.035,
+      "Engineering/Construction": 0.030,
+      "Telecom. Services": 0.025,
+      "Metals & Mining": 0.020,
+      "Oil/Gas (Production and Exploration)": 0.015,
+      "Apparel": 0.010,
+      "Insurance (General)": 0.015
+    }
+  },
+  "AR": {
+    "index_name": "Merval",
+    "country": "Argentina",
+    "as_of": "2024-Q4 (estimated from publicly disclosed Merval components)",
+    "source_note": "IAMC (Índice Argentino de Mercado Abierto) maintains the Merval panel. The weights below are reasonable estimates from analyst commentary. To get the live official weights, run scripts/refresh_index_composition.py.",
+    "sectors": {
+      "Oil/Gas (Integrated)": 0.140,
+      "Banks (Regional)": 0.180,
+      "Utility (General)": 0.135,
+      "Retail (Online)": 0.110,
+      "Building Materials": 0.080,
+      "Steel": 0.060,
+      "Auto Parts": 0.045,
+      "Telecom. Services": 0.060,
+      "Oil/Gas (Distribution)": 0.040,
+      "Real Estate (Operations & Services)": 0.060,
+      "Metals & Mining": 0.045,
+      "Food Processing": 0.045
+    }
+  }
+}
